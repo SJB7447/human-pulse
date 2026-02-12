@@ -8,11 +8,12 @@ import Link from 'next/link';
 import { motion } from 'framer-motion';
 import SubscriptionManager from '@/components/settings/SubscriptionManager';
 import PaymentHistory from '@/components/settings/PaymentHistory';
+import RoleRequestPanel from '@/components/settings/RoleRequestPanel';
 
 export default function SettingsPage() {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
-    const [activeTab, setActiveTab] = useState<'profile' | 'subscription'>('profile');
+    const [activeTab, setActiveTab] = useState<'profile' | 'subscription' | 'roles'>('profile');
     const { showToast } = useToast();
     const [formData, setFormData] = useState({
         username: '',
@@ -137,6 +138,16 @@ export default function SettingsPage() {
                         <motion.div layoutId="activeTab" className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600" />
                     )}
                 </button>
+                <button
+                    onClick={() => setActiveTab('roles')}
+                    className={`pb-3 px-4 text-sm font-bold transition-all relative ${activeTab === 'roles' ? 'text-blue-600' : 'text-gray-400 hover:text-gray-600'
+                        }`}
+                >
+                    역할 인증
+                    {activeTab === 'roles' && (
+                        <motion.div layoutId="activeTab" className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600" />
+                    )}
+                </button>
             </div>
 
             <motion.div
@@ -208,7 +219,7 @@ export default function SettingsPage() {
                             </button>
                         </div>
                     </form>
-                ) : (
+                ) : activeTab === 'subscription' ? (
                     <div className="space-y-8">
                         <SubscriptionManager
                             status={subscription.status}
@@ -217,6 +228,8 @@ export default function SettingsPage() {
                         />
                         <PaymentHistory />
                     </div>
+                ) : (
+                    <RoleRequestPanel />
                 )}
             </motion.div>
         </div>

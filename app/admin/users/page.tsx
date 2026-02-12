@@ -1,6 +1,7 @@
 import { createClient } from '@/utils/supabase/server';
 import { redirect } from 'next/navigation';
 import UserActions from './UserActions';
+import AdminRoleRequests from '@/components/admin/AdminRoleRequests';
 
 export default async function AdminUsersPage() {
     const supabase = await createClient();
@@ -21,6 +22,11 @@ export default async function AdminUsersPage() {
     return (
         <div>
             <h2 className="text-2xl font-bold text-gray-900 mb-6">사용자 관리</h2>
+
+            {/* Role Requests Section */}
+            <div className="mb-8">
+                <AdminRoleRequests />
+            </div>
 
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
                 <div className="overflow-x-auto">
