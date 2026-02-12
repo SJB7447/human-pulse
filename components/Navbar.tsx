@@ -18,15 +18,36 @@ export default function Navbar() {
     useEffect(() => {
         const supabase = createClient();
 
-        // Get current user
-        supabase.auth.getUser().then(({ data: { user } }) => {
-            setUser(user as UserData | null);
+        const fetchUserRole = async (userId: string) => {
+            const { data: profile } = await supabase
+                .from('profiles')
+                .select('role')
+                .eq('id', userId)
+                .single();
+            return profile?.role;
+        };
+
+        const initializeUser = async () => {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user) {
+                const role = await fetchUserRole(user.id);
+                setUser({ ...user, user_metadata: { ...user.user_metadata, role } });
+            } else {
+                setUser(null);
+            }
             setLoaded(true);
-        });
+        };
+
+        initializeUser();
 
         // Listen for auth changes (login/logout)
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-            setUser(session?.user as UserData | null ?? null);
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+            if (session?.user) {
+                const role = await fetchUserRole(session.user.id);
+                setUser({ ...session.user, user_metadata: { ...session.user.user_metadata, role } });
+            } else {
+                setUser(null);
+            }
         });
 
         return () => subscription.unsubscribe();
