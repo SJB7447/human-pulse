@@ -1,4 +1,4 @@
-import { model } from '@/lib/gemini';
+import { genAI, TEXT_MODEL_NAME, extractText } from '@/lib/gemini';
 import { NextRequest, NextResponse } from 'next/server';
 
 const AUTOFILL_PROMPT = `
@@ -28,7 +28,7 @@ Rules:
 
 export async function POST(req: NextRequest) {
     try {
-        if (!model) return NextResponse.json({ error: 'AI service unavailable' }, { status: 503 });
+        if (!genAI) return NextResponse.json({ error: 'AI service unavailable' }, { status: 503 });
         const { content } = await req.json();
 
         if (!content || content.length < 50) {
@@ -37,9 +37,8 @@ export async function POST(req: NextRequest) {
 
         const prompt = `${AUTOFILL_PROMPT} \n\nArticle Content: \n${content} `;
 
-        const result = await model.generateContent(prompt);
-        const response = await result.response;
-        const text = response.text();
+        const result = await genAI.models.generateContent({ model: TEXT_MODEL_NAME, contents: prompt });
+        const text = extractText(result);
 
         const cleanText = text.replace(/```json/g, '').replace(/```/g, '').trim();
 

@@ -1,4 +1,4 @@
-import { model } from '@/lib/gemini';
+import { genAI, TEXT_MODEL_NAME, extractText } from '@/lib/gemini';
 import { createClient } from '@/utils/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
         if (!user) {
             return NextResponse.json({ error: '로그인이 필요합니다.' }, { status: 401 });
         }
-        if (!model) return NextResponse.json({ error: 'AI 서비스를 사용할 수 없습니다.' }, { status: 503 });
+        if (!genAI) return NextResponse.json({ error: 'AI 서비스를 사용할 수 없습니다.' }, { status: 503 });
 
         const { keywords, outline, topic } = await req.json();
         if (!topic && !keywords) {
@@ -42,9 +42,8 @@ export async function POST(req: NextRequest) {
         if (outline) context += `\n기사 개요/방향: ${outline}`;
 
         const prompt = `${DRAFT_PROMPT}\n\n${context}`;
-        const result = await model.generateContent(prompt);
-        const response = await result.response;
-        const text = response.text();
+        const result = await genAI.models.generateContent({ model: TEXT_MODEL_NAME, contents: prompt });
+        const text = extractText(result);
         const cleanText = text.replace(/```json/g, '').replace(/```/g, '').trim();
 
         try {

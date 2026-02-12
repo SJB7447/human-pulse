@@ -1,4 +1,4 @@
-import { model } from '@/lib/gemini';
+import { genAI, TEXT_MODEL_NAME, extractText } from '@/lib/gemini';
 import { STORY_GENERATION_PROMPT } from '@/lib/prompts';
 import { createClient } from '@/utils/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
@@ -7,7 +7,7 @@ const DAILY_FREE_LIMIT = 3;
 
 export async function POST(req: NextRequest) {
     try {
-        if (!model) return NextResponse.json({ error: 'AI service unavailable' }, { status: 503 });
+        if (!genAI) return NextResponse.json({ error: 'AI service unavailable' }, { status: 503 });
         const { content } = await req.json();
 
         if (!content) {
@@ -44,7 +44,6 @@ export async function POST(req: NextRequest) {
 
             if (countError) {
                 console.error('Usage Check Error:', countError);
-                // Fail open or closed? Let's fail closed for safety but log it.
                 return NextResponse.json({ error: 'Failed to verify usage limits' }, { status: 500 });
             }
 
@@ -59,9 +58,8 @@ export async function POST(req: NextRequest) {
 
         const prompt = `${STORY_GENERATION_PROMPT}\n\nArticle Content:\n${content}\n\nIMPORTANT: You must respond in Korean (한국어) for "title", "summary", "text", "question", and "options". However, the "visual_description" field MUST remain in English for image generation purposes.`;
 
-        const result = await model.generateContent(prompt);
-        const response = await result.response;
-        const text = response.text();
+        const result = await genAI.models.generateContent({ model: TEXT_MODEL_NAME, contents: prompt });
+        const text = extractText(result);
 
         // Clean up markdown code blocks if Gemini includes them
         const cleanText = text.replace(/```json/g, '').replace(/```/g, '').trim();
@@ -70,25 +68,12 @@ export async function POST(req: NextRequest) {
             const jsonResponse = JSON.parse(cleanText);
 
             // 2. Record Usage
-            // We do this AFTER successful generation to not count failed attempts
             const { error: logError } = await supabase.from('interactions').insert({
                 user_id: user.id,
-                article_id: null, // We might not have article_id passed in explicitly? 
-                // Ah, interaction table expects article_id usually. 
-                // Checks schema: article_id uuid references public.articles(id).
-                // If specific article context is needed, we should pass articleId in request.
-                // For now, let's leave it null if the schema allows nullable, or we need to pass it.
-                // Schema: article_id uuid references public.articles(id)
-                // It is NOT marked NOT NULL in the schema I read earlier?
-                // Let's check schema.sql again.
-                // "article_id uuid references public.articles(id)," -> It is nullable by default unless "not null" specified.
+                article_id: null,
                 interaction_type: 'story_generated',
                 emotion_log: jsonResponse.emotion || null
             });
-
-            // Note: If article_id is strictly required by some FK constraint logic not visible, we might error.
-            // But standard SQL allows null FK unless NO NULL.
-            // Ideally we should pass articleId from client to associate properly.
 
             if (logError) {
                 console.error('Failed to log interaction:', logError);

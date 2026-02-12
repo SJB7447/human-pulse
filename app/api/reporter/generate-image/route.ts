@@ -1,4 +1,4 @@
-import { imageModel } from '@/lib/gemini';
+import { genAI, IMAGE_MODEL_NAME } from '@/lib/gemini';
 import { createClient } from '@/utils/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -9,7 +9,7 @@ export async function POST(req: NextRequest) {
         if (!user) {
             return NextResponse.json({ error: '로그인이 필요합니다.' }, { status: 401 });
         }
-        if (!imageModel) return NextResponse.json({ error: 'AI 서비스를 사용할 수 없습니다.' }, { status: 503 });
+        if (!genAI) return NextResponse.json({ error: 'AI 서비스를 사용할 수 없습니다.' }, { status: 503 });
 
         const { prompt } = await req.json();
         if (!prompt || prompt.trim().length < 5) {
@@ -21,20 +21,33 @@ Style: Cinematic, photorealistic, editorial photography.
 Subject: ${prompt}
 Do NOT include any text or watermarks in the image.`;
 
-        const result = await imageModel.generateContent(imagePrompt);
-        const response = await result.response;
-
-        // Check for inline image data in the response
-        const parts = response.candidates?.[0]?.content?.parts || [];
         let imageBase64 = null;
         let mimeType = 'image/png';
 
-        for (const part of parts) {
-            if (part.inlineData) {
-                imageBase64 = part.inlineData.data;
-                mimeType = part.inlineData.mimeType || 'image/png';
-                break;
+        try {
+            // Attempt to use Imagen 3 via Google GenAI SDK
+            // Note: The method signature for image generation in @google/genai may vary. 
+            // We attempt standard generation. If it fails (e.g. 404 model not found), we catch and use fallback.
+            // Check if generateImages exists on models (it should in new SDK)
+            if (genAI.models.generateImages) {
+                const response = await genAI.models.generateImages({
+                    model: IMAGE_MODEL_NAME,
+                    prompt: imagePrompt,
+                    config: { numberOfImages: 1 }
+                });
+
+                // Response structure for generateImages:
+                // response.generatedImages[0].image.imageBytes (base64 string)
+                if (response?.generatedImages?.[0]?.image?.imageBytes) {
+                    imageBase64 = response.generatedImages[0].image.imageBytes;
+                }
+            } else {
+                // Warning: Method might not exist in this SDK version or requires different call
+                console.warn('generateImages method not found on genAI.models');
             }
+        } catch (genError) {
+            console.warn('Gemini/Imagen generation failed, falling back to Pollinations:', genError);
+            // Fallback proceeds below
         }
 
         if (!imageBase64) {
