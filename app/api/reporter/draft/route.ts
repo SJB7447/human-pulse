@@ -30,6 +30,7 @@ export async function POST(req: NextRequest) {
         if (!user) {
             return NextResponse.json({ error: '로그인이 필요합니다.' }, { status: 401 });
         }
+        if (!model) return NextResponse.json({ error: 'AI 서비스를 사용할 수 없습니다.' }, { status: 503 });
 
         const { keywords, outline, topic } = await req.json();
         if (!topic && !keywords) {

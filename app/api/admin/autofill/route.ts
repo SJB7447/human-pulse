@@ -28,6 +28,7 @@ Rules:
 
 export async function POST(req: NextRequest) {
     try {
+        if (!model) return NextResponse.json({ error: 'AI service unavailable' }, { status: 503 });
         const { content } = await req.json();
 
         if (!content || content.length < 50) {

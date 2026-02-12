@@ -48,7 +48,7 @@ export default async function Home() {
                 <div className="relative h-60 w-full bg-gray-200 overflow-hidden">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
-                    src={`https://source.unsplash.com/random/800x600/?${news.keywords?.[0] || news.emotion}`}
+                    src={news.image_url || `https://image.pollinations.ai/prompt/${encodeURIComponent((news.keywords?.[0] || news.title || 'news').slice(0, 60))}?width=800&height=600&nologo=true`}
                     alt={news.title}
                     className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                     onError={(e) => {
