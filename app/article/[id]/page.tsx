@@ -7,10 +7,10 @@ import { Metadata, ResolvingMetadata } from 'next';
 export const revalidate = 0;
 
 export async function generateMetadata(
-    { params }: { params: { id: string } },
+    { params }: { params: Promise<{ id: string }> },
     parent: ResolvingMetadata
 ): Promise<Metadata> {
-    const id = params.id
+    const id = (await params).id
     const supabase = await createClient()
 
     const { data: article } = await supabase
@@ -51,12 +51,13 @@ export async function generateMetadata(
     }
 }
 
-export default async function ArticlePage({ params }: { params: { id: string } }) {
+export default async function ArticlePage({ params }: { params: Promise<{ id: string }> }) {
+    const { id } = await params;
     const supabase = await createClient();
     const { data: article } = await supabase
         .from('articles')
         .select('*')
-        .eq('id', params.id)
+        .eq('id', id)
         .single();
 
     if (!article) {
