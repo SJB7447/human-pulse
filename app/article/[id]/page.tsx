@@ -1,96 +1,67 @@
-'use client';
+import { createClient } from '@/utils/supabase/server';
+import { notFound } from 'next/navigation';
+import ArticleClient from './ArticleClient'; // We'll move the client logic here
 
-import { useState } from 'react';
-import { useParams } from 'next/navigation';
-import { motion } from 'framer-motion';
-import InteractiveStory from '@/components/InteractiveStory';
+import { Metadata, ResolvingMetadata } from 'next';
 
-// Mock data (same as Home page for now)
-const MOCK_NEWS_CONTENT = {
-    '1': {
-        title: 'New AI Policy Framework Announced',
-        content: 'The government has today unveiled a comprehensive framework for ethocal AI development. This explicitly bans autonomous weaponry and sets strict guidelines for data privacy...'
-    },
-    '2': {
-        title: 'Global Markets Rally',
-        content: 'Stock markets across Asia and Europe surged today following positive earnings reports from major tech conglomerates...'
-    }
-};
+export const revalidate = 0;
 
-export default function ArticlePage() {
-    const params = useParams();
-    const id = params?.id as string;
-    const article = MOCK_NEWS_CONTENT[id as keyof typeof MOCK_NEWS_CONTENT] || { title: 'Article Not Found', content: '...' };
+export async function generateMetadata(
+    { params }: { params: { id: string } },
+    parent: ResolvingMetadata
+): Promise<Metadata> {
+    const id = params.id
+    const supabase = await createClient()
 
-    const [isLoading, setIsLoading] = useState(false);
-    const [story, setStory] = useState<any>(null);
-    const [error, setError] = useState<string | null>(null);
+    const { data: article } = await supabase
+        .from('articles')
+        .select('*')
+        .eq('id', id)
+        .single()
 
-    const generateStory = async () => {
-        setIsLoading(true);
-        setError(null);
-        try {
-            const res = await fetch('/api/generate', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ content: article.content }),
-            });
-
-            if (!res.ok) throw new Error('Failed to generate story');
-
-            const data = await res.json();
-            setStory(data);
-        } catch (err) {
-            setError('Failed to generate interactive story. Please try again.');
-            console.error(err);
-        } finally {
-            setIsLoading(false);
+    if (!article) {
+        return {
+            title: 'Article Not Found | Human Pulse',
         }
-    };
+    }
 
-    return (
-        <div className="max-w-4xl mx-auto p-6 min-h-screen">
-            <div className="mb-6">
-                <a href="/" className="text-gray-500 hover:text-gray-900">&larr; Back to Feed</a>
-            </div>
+    const previousImages = (await parent).openGraph?.images || []
 
-            <h1 className="text-3xl font-bold mb-4 text-gray-900">{article.title}</h1>
+    // Use article's image_url if available, otherwise a reliable placeholder or site default
+    const primaryImage = article.image_url || `https://placehold.co/1200x630/png?text=${encodeURIComponent(article.title)}`
 
-            {!story && (
-                <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 mb-8">
-                    <p className="text-gray-700 leading-relaxed mb-6">
-                        {article.content}
-                    </p>
-                    <div className="flex justify-center">
-                        <button
-                            onClick={generateStory}
-                            disabled={isLoading}
-                            className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white px-8 py-3 rounded-full font-semibold shadow-lg hover:shadow-xl transition-all active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed flex items-center gap-2"
-                        >
-                            {isLoading ? (
-                                <>
-                                    <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                    Generating Experience...
-                                </>
-                            ) : (
-                                <>
-                                    ✨ Experience this Story
-                                </>
-                            )}
-                        </button>
-                    </div>
-                    {error && <p className="text-red-500 text-center mt-4 text-sm">{error}</p>}
-                </div>
-            )}
+    return {
+        title: `${article.title} | Human Pulse`,
+        description: article.summary || article.content.substring(0, 160),
+        openGraph: {
+            title: article.title,
+            description: article.summary,
+            images: [primaryImage, ...previousImages],
+            type: 'article',
+            publishedTime: article.created_at,
+            section: article.emotion,
+            tags: article.keywords,
+        },
+        twitter: {
+            card: 'summary_large_image',
+            title: article.title,
+            description: article.summary,
+            images: [primaryImage],
+        },
+    }
+}
 
-            {story && (
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                >
-                    <InteractiveStory story={story} />
-                </motion.div>
-            )}
-        </div>
-    );
+export default async function ArticlePage({ params }: { params: { id: string } }) {
+    const supabase = await createClient();
+    const { data: article } = await supabase
+        .from('articles')
+        .select('*')
+        .eq('id', params.id)
+        .single();
+
+    if (!article) {
+        notFound();
+    }
+
+    return <ArticleClient article={article} />;
 }

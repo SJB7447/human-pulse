@@ -14,7 +14,7 @@ The JSON structure should be:
     {
       "id": 1,
       "text": "Narrative text for this scene...",
-      "visual_description": "Description for an image to accompany this scene",
+      "visual_description": "Description for an image to accompany this scene (MUST be in English for image search)",
       "interactive_element": {
         "type": "choice" | "quiz" | "reflection",
         "question": "Question or prompt for the user (optional)",
