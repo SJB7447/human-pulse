@@ -45,16 +45,12 @@ export default async function Home() {
                 className={`group relative overflow-hidden rounded-3xl border-2 ${colors.border} bg-white/80 backdrop-blur-sm shadow-sm hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 flex flex-col`}
               >
                 {/* Dynamic Image Background/Section */}
-                <div className="relative h-60 w-full bg-gray-200 overflow-hidden">
+                <div className={`relative h-60 w-full overflow-hidden ${colors.accent}`}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={news.image_url || `https://image.pollinations.ai/prompt/${encodeURIComponent((news.keywords?.[0] || news.title || 'news').slice(0, 60))}?width=800&height=600&nologo=true`}
                     alt={news.title}
                     className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).style.display = 'none';
-                      (e.target as HTMLImageElement).parentElement!.classList.add(colors.accent);
-                    }}
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-80 group-hover:opacity-60 transition-opacity" />
                   <span className={`absolute top-4 left-4 px-3 py-1 rounded-full text-xs font-bold text-white ${colors.accent} backdrop-blur-md shadow-lg uppercase tracking-wide`}>
