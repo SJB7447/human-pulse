@@ -17,40 +17,84 @@ export default function Navbar() {
 
     useEffect(() => {
         const supabase = createClient();
+        let mounted = true;
 
         const fetchUserRole = async (userId: string) => {
-            const { data: profile } = await supabase
-                .from('profiles')
-                .select('role')
-                .eq('id', userId)
-                .single();
-            return profile?.role;
+            try {
+                const { data: profile, error } = await supabase
+                    .from('profiles')
+                    .select('role')
+                    .eq('id', userId)
+                    .single();
+
+                if (error) {
+                    console.error('Error fetching role:', error);
+                    return null;
+                }
+                return profile?.role;
+            } catch (error) {
+                console.error('Exception fetching role:', error);
+                return null;
+            }
         };
 
         const initializeUser = async () => {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (user) {
-                const role = await fetchUserRole(user.id);
-                setUser({ ...user, user_metadata: { ...user.user_metadata, role } });
-            } else {
-                setUser(null);
+            try {
+                const { data: { user }, error } = await supabase.auth.getUser();
+                if (error && error.name !== 'AuthSessionMissingError') {
+                    console.error('Auth error:', error);
+                }
+
+                if (user && mounted) {
+                    const role = await fetchUserRole(user.id);
+                    // Use a functional update or direct state update
+                    // We cast to UserData to be safe with unknown properties
+                    const updatedUser = {
+                        ...user,
+                        user_metadata: {
+                            ...user.user_metadata,
+                            role: role || user.user_metadata?.role
+                        }
+                    } as unknown as UserData;
+
+                    setUser(updatedUser);
+                } else if (mounted) {
+                    setUser(null);
+                }
+            } catch (error) {
+                console.error('Navbar initialization error:', error);
+                if (mounted) setUser(null);
+            } finally {
+                if (mounted) setLoaded(true);
             }
-            setLoaded(true);
         };
 
         initializeUser();
 
         // Listen for auth changes (login/logout)
         const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+            if (!mounted) return;
+
             if (session?.user) {
                 const role = await fetchUserRole(session.user.id);
-                setUser({ ...session.user, user_metadata: { ...session.user.user_metadata, role } });
+                const updatedUser = {
+                    ...session.user,
+                    user_metadata: {
+                        ...session.user.user_metadata,
+                        role: role || session.user.user_metadata?.role
+                    }
+                } as unknown as UserData;
+                setUser(updatedUser);
             } else {
                 setUser(null);
             }
+            setLoaded(true); // Ensure loaded is true on change as well
         });
 
-        return () => subscription.unsubscribe();
+        return () => {
+            mounted = false;
+            subscription.unsubscribe();
+        };
     }, []);
 
     return (
