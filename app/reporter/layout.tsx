@@ -29,7 +29,15 @@ export default function ReporterLayout({
                 return;
             }
 
-            const role = user.user_metadata?.role;
+            // Fetch role from profiles table
+            const { data: profile } = await supabase
+                .from('profiles')
+                .select('role')
+                .eq('id', user.id)
+                .single();
+
+            const role = profile?.role; // Use DB role, ignore text metadata which might be stale
+
             if (role !== 'reporter' && role !== 'admin') {
                 showToast('기자단 접근 권한이 없습니다.', 'error');
                 router.replace('/');

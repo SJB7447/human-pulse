@@ -29,7 +29,16 @@ export default function AdminLayout({
                 return;
             }
 
-            if (user.user_metadata?.role !== 'admin') {
+            // Fetch role from profiles table
+            const { data: profile } = await supabase
+                .from('profiles')
+                .select('role')
+                .eq('id', user.id)
+                .single();
+
+            const role = profile?.role; // Use DB role, ignore text metadata which might be stale
+
+            if (role !== 'admin') {
                 showToast('관리자 접근 권한이 없습니다.', 'error');
                 router.replace('/');
                 return;
