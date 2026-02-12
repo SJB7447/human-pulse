@@ -42,6 +42,13 @@ export default async function Navbar() {
                                     마이페이지
                                 </Link>
 
+                                <Link
+                                    href="/reporter"
+                                    className="text-sm font-medium text-blue-600 hover:text-blue-800 transition"
+                                >
+                                    기자단
+                                </Link>
+
                                 {user.user_metadata?.role === 'admin' && (
                                     <Link
                                         href="/admin"

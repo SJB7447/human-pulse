@@ -8,4 +8,8 @@ if (!apiKey) {
 
 const genAI = new GoogleGenerativeAI(apiKey);
 
-export const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
+// Text model (keyword search, article drafting, spell-check, analysis)
+export const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+
+// Image generation model (native Gemini image gen)
+export const imageModel = genAI.getGenerativeModel({ model: "gemini-2.0-flash-preview-image-generation" });

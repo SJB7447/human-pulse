@@ -36,3 +36,13 @@ export const EMOTION_COLORS: Record<EmotionType, { bg: string; text: string; bor
 export const getEmotionColor = (emotion: EmotionType) => {
     return EMOTION_COLORS[emotion] || EMOTION_COLORS.tragic_gray;
 };
+
+// Raw hex colors for inline styles (e.g. style={{ backgroundColor: ... }})
+export const EMOTION_HEX: Record<EmotionType, string> = {
+    political_red: '#f4606b',
+    economic_blue: '#3f65ef',
+    environmental_green: '#88d84a',
+    lifestyle_yellow: '#ffd150',
+    tragic_gray: '#999898',
+};
+
