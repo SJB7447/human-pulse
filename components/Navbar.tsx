@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { User, LogOut } from 'lucide-react';
+import { User, LogOut, PenTool, LayoutDashboard } from 'lucide-react';
 import { createClient } from '@/utils/supabase/client';
 
 interface UserData {
@@ -70,12 +70,14 @@ export default function Navbar() {
                                     마이페이지
                                 </Link>
 
-                                <Link
-                                    href="/reporter"
-                                    className="text-sm font-medium text-blue-600 hover:text-blue-800 transition"
-                                >
-                                    기자단
-                                </Link>
+                                {(user.user_metadata?.role === 'reporter' || user.user_metadata?.role === 'admin') && (
+                                    <Link
+                                        href="/reporter"
+                                        className="text-sm font-medium text-blue-600 hover:text-blue-800 transition"
+                                    >
+                                        기자단
+                                    </Link>
+                                )}
 
                                 {user.user_metadata?.role === 'admin' && (
                                     <Link
@@ -126,6 +128,21 @@ export default function Navbar() {
                 <Link href="/community" className="text-xs font-medium text-gray-600 flex flex-col items-center gap-1">
                     <span>커뮤니티</span>
                 </Link>
+
+                {(user?.user_metadata?.role === 'reporter' || user?.user_metadata?.role === 'admin') && (
+                    <Link href="/reporter" className="text-xs font-medium text-blue-600 flex flex-col items-center gap-1">
+                        <PenTool size={18} />
+                        <span>기자단</span>
+                    </Link>
+                )}
+
+                {user?.user_metadata?.role === 'admin' && (
+                    <Link href="/admin" className="text-xs font-medium text-purple-600 flex flex-col items-center gap-1">
+                        <LayoutDashboard size={18} />
+                        <span>관리자</span>
+                    </Link>
+                )}
+
                 <Link href="/pricing" className="text-xs font-medium text-gray-600 flex flex-col items-center gap-1">
                     <span>이용권</span>
                 </Link>

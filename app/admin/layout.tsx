@@ -1,9 +1,11 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { LayoutDashboard, Users, MessageSquare, Menu, ArrowLeft } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { createClient } from '@/utils/supabase/client';
+import { useToast } from '@/components/ui/Toast';
 
 export default function AdminLayout({
     children,
@@ -11,7 +13,37 @@ export default function AdminLayout({
     children: React.ReactNode;
 }) {
     const pathname = usePathname();
+    const router = useRouter();
+    const { showToast } = useToast();
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+    const [isAuthorized, setIsAuthorized] = useState(false);
+
+    useEffect(() => {
+        const checkAuth = async () => {
+            const supabase = createClient();
+            const { data: { user } } = await supabase.auth.getUser();
+
+            if (!user) {
+                showToast('로그인이 필요합니다.', 'error');
+                router.replace('/login');
+                return;
+            }
+
+            if (user.user_metadata?.role !== 'admin') {
+                showToast('관리자 접근 권한이 없습니다.', 'error');
+                router.replace('/');
+                return;
+            }
+
+            setIsAuthorized(true);
+        };
+
+        checkAuth();
+    }, [router, showToast]);
+
+    if (!isAuthorized) {
+        return null; // or a loading spinner
+    }
 
     const navItems = [
         { href: '/admin', label: '대시보드', icon: LayoutDashboard },
@@ -37,8 +69,8 @@ export default function AdminLayout({
                                 key={item.href}
                                 href={item.href}
                                 className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${isActive
-                                        ? 'bg-blue-50 text-blue-700'
-                                        : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                                    ? 'bg-blue-50 text-blue-700'
+                                    : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                                     }`}
                             >
                                 <item.icon size={20} />

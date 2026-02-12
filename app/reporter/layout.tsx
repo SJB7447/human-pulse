@@ -1,9 +1,11 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { PenTool, FileText, ArrowLeft, Menu } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { createClient } from '@/utils/supabase/client';
+import { useToast } from '@/components/ui/Toast';
 
 export default function ReporterLayout({
     children,
@@ -11,7 +13,38 @@ export default function ReporterLayout({
     children: React.ReactNode;
 }) {
     const pathname = usePathname();
+    const router = useRouter();
+    const { showToast } = useToast();
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+    const [isAuthorized, setIsAuthorized] = useState(false);
+
+    useEffect(() => {
+        const checkAuth = async () => {
+            const supabase = createClient();
+            const { data: { user } } = await supabase.auth.getUser();
+
+            if (!user) {
+                showToast('로그인이 필요합니다.', 'error');
+                router.replace('/login');
+                return;
+            }
+
+            const role = user.user_metadata?.role;
+            if (role !== 'reporter' && role !== 'admin') {
+                showToast('기자단 접근 권한이 없습니다.', 'error');
+                router.replace('/');
+                return;
+            }
+
+            setIsAuthorized(true);
+        };
+
+        checkAuth();
+    }, [router, showToast]);
+
+    if (!isAuthorized) {
+        return null; // or a loading spinner
+    }
 
     const navItems = [
         { href: '/reporter', label: '기사 작성', icon: PenTool },
