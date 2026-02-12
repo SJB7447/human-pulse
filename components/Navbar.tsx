@@ -1,10 +1,36 @@
-import { createClient } from '@/utils/supabase/server';
-import Link from 'next/link';
-import { Menu, X, User, LogOut } from 'lucide-react';
+'use client';
 
-export default async function Navbar() {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+import { useEffect, useState } from 'react';
+import Link from 'next/link';
+import { User, LogOut } from 'lucide-react';
+import { createClient } from '@/utils/supabase/client';
+
+interface UserData {
+    id: string;
+    email?: string;
+    user_metadata?: { role?: string };
+}
+
+export default function Navbar() {
+    const [user, setUser] = useState<UserData | null>(null);
+    const [loaded, setLoaded] = useState(false);
+
+    useEffect(() => {
+        const supabase = createClient();
+
+        // Get current user
+        supabase.auth.getUser().then(({ data: { user } }) => {
+            setUser(user as UserData | null);
+            setLoaded(true);
+        });
+
+        // Listen for auth changes (login/logout)
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+            setUser(session?.user as UserData | null ?? null);
+        });
+
+        return () => subscription.unsubscribe();
+    }, []);
 
     return (
         <nav className="sticky top-0 z-40 w-full bg-white/80 backdrop-blur-md border-b border-gray-100">
@@ -32,7 +58,9 @@ export default async function Navbar() {
 
                     {/* User Menu */}
                     <div className="hidden md:flex items-center gap-4">
-                        {user ? (
+                        {!loaded ? (
+                            <div className="w-20 h-8 bg-gray-100 rounded-full animate-pulse" />
+                        ) : user ? (
                             <div className="flex items-center gap-4">
                                 <Link
                                     href="/mypage"
@@ -81,7 +109,7 @@ export default async function Navbar() {
                         )}
                     </div>
 
-                    {/* Mobile Menu Button (Placeholder for now, could be interactive client component if needed) */}
+                    {/* Mobile Menu Button */}
                     <div className="md:hidden flex items-center">
                         <Link href="/mypage" className="p-2 text-gray-600">
                             <User size={24} />
@@ -90,7 +118,7 @@ export default async function Navbar() {
                 </div>
             </div>
 
-            {/* Mobile Navigation Links (Simple inline for now) */}
+            {/* Mobile Navigation Links */}
             <div className="md:hidden border-t border-gray-100 flex justify-around py-3 bg-white/50 backdrop-blur-sm">
                 <Link href="/" className="text-xs font-medium text-gray-600 flex flex-col items-center gap-1">
                     <span>뉴스</span>
